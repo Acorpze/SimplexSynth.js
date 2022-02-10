@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "node-wav": "^0.0.2",
+    "simplex-noise": "^3.0.1"
+  }
+}
