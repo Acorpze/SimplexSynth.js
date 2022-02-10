@@ -3,11 +3,16 @@ const simplexNoise = require('simplex-noise');
 const fs = require('fs');
 
 
+
+
 const _args = process.argv;
 console.log(_args);
 
 
 let sampleArray = [];
+
+
+
 
 // File stuff
 function writeWav() { // We convert sampleArray to wav
@@ -37,33 +42,74 @@ function writeWav() { // We convert sampleArray to wav
 
 
 
+
+// Math and crap
+function lerp(a, b, c) {
+  return a + (b - a) * c;
+};
+
+let simplex = new simplexNoise(12345);
+function noise(x, y = 0) {
+  return simplex.noise2D(x, y);
+};
+
+function sin(phase, freq = .1) {
+  return Math.sin(phase * freq);
+};
+
+
+
+
+
+
+
 // Generator classes
 class sineGenerator {
-  constructor(ampSeed = 1, detSeed = 2, waves = 50, ampFreq = 1, detFreq = 1) {
-    this.ampGen = new simplexNoise(ampSeed);
-    this.detGen = new simplexNoise(detSeed);
-
+  constructor(waves = 50, amp = .1, freq = .5) {
     this.waves = waves; // Amount of sines to generate
-
-    this.ampFreq = ampFreq;
-    this.detFreq = detFreq;
+    this.amp = amp;
+    this.freq = freq;
 
   }
 
   generate(phase = 1) {
     let sample = 0;
     for (let i = 0; i < this.waves; i++) {
-      sample *= Math.sin(
-        (this.ampGen.noise2D(i, phase) / this.ampFreq)
-        +
-        Math.sin(
-          this.detGen.noise2D(phase, i) / this.detFreq
-        )
+
+      let ampnoise = sin(
+        (i * phase) + noise(i)
       );
+
+      sample += ampnoise;
     }
     return sample;
   }
 };
+
+
+
+// Quick effects
+function normalize() {
+  let highest = 0;
+  for (let i = 0; i < sampleArray.length; i++) {
+    if (Math.abs(sampleArray[i]) > highest) { highest = Math.abs(sampleArray[i]); }
+  }
+  for (let i = 0; i < sampleArray.length; i++) {
+    sampleArray[i] /= highest;
+  }
+}
+
+
+function reverb(iters = 3) {
+  for (let i = 0; i < iters; i++) {
+    for (let x = 1; x < sampleArray.length; x++) {
+      if (sampleArray[x - 1] !== 'undefined') {
+        sampleArray[x] = lerp(sampleArray[x - 1], sampleArray[x], .02);
+      }
+    }
+  }
+}
+
 
 
 
@@ -75,9 +121,12 @@ function genQuick() {
     456
   );
 
-  for (let i = 0; i < 32000 * 5; i++) {
+  for (let i = 0; i < 32000 * 10; i++) {
     sampleArray[i] = gen.generate(i);
   }
+
+  reverb();
+  normalize();
 
   writeWav();
 }
